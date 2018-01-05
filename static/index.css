@@ -1,0 +1,158 @@
+body {
+    margin: 0;
+    background: #eee;
+    font-size: 16px;
+    font-weight: 300;
+    color: #333;
+    font-family: -apple-system, BlinkMacSystemFont, Helvetica Neue, PingFang SC, Microsoft YaHei, Source Han Sans SC, Noto Sans CJK SC, WenQuanYi Micro Hei, sans-serif;
+}
+
+a {
+    color: #333;
+    text-decoration: none;
+}
+
+h1, h2, h3, h4, h5, h6 {
+    font-weight: 500;
+}
+
+.list-blog {
+    padding: 40px 0 45px;
+    border-bottom: 1px solid #ddd;
+}
+
+.list-blog:last-child {
+    border-bottom: none;
+}
+
+.list-blog-title {
+    font-size: 1.6em;
+    font-weight: 500;
+    /* transition: color .2s ease-in-out; */
+}
+
+.list-blog-title:hover {
+    color: #000;
+}
+
+.blog-title {
+    font-size: 1.8em;
+    font-weight: 500;
+    color: #000;
+}
+
+.list-blog-content h1, .list-blog-content h2, .list-blog-content h3, .list-blog-content h4, .list-blog-content h5, .list-blog-content h6 {
+    font-size: 1.2em;
+}
+
+.list-blog-content {
+    color: #666;
+    padding: 15px 0 20px;
+    line-height: 1.8em;
+}
+
+.blog-content {
+    padding: 25px 0 30px;
+    color: #333;
+    line-height: 1.8em;
+}
+
+.blog-content img {
+    max-width: 100%;
+}
+
+.list-blog-time, .blog-time {
+    color: #0aa69e;
+    font-size: .85em;
+}
+
+.blog-tag, .list-blog-tag {
+    background: #00000004;
+    display: inline-block;
+    padding: 7px 14px;
+    line-height: 16px;
+    border-radius: 15px;
+    transition: background .2s ease-in-out, color .2s ease-in-out;
+}
+
+.blog-tag:hover, .list-blog-tag:hover {
+    color: #eee;
+    background: #0aa69e91;
+    /* background: rgba(0, 0, 0, .1); */
+}
+
+.list-blog-abstract {
+    display: inline;
+}
+
+.list-blog-readmore {
+    color: #0aa69e;
+    display: inline-block;
+    transition: color .2s ease-in-out;
+}
+
+.list-blog-readmore:hover {
+    color: #0aa69e91;
+}
+
+.blog-container {
+    padding: 40px 0 45px;
+    /* border-bottom: 1px solid #ddd; */
+}
+
+.container {
+    width: 100%;
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 0 15px;
+    box-sizing: border-box;
+}
+
+.header {
+    padding: 50px 0;
+    color: #ccc;
+    background-color: #111;
+}
+
+.header-title {
+    color: #ccc;
+    font-size: 3em;
+}
+
+.header-intro {
+    font-size: 1.5em;
+}
+
+.footer {
+    text-align: center;
+    font-size: .9em;
+    color: #666;
+    padding: 40px 0;
+    text-shadow: 1px 1px 0px #fff;
+}
+
+.load-more {
+    text-align: center;
+    font-size: .9em;
+    color: #999;
+}
+
+.tag-info {
+    padding: 15px;
+    margin: 20px 0;
+    background: #ffffffaa;
+}
+
+.tag-title {
+    font-size: 1.8em;
+}
+
+.tag-count {
+    font-size: .8em;
+    color: #666;
+}
+
+.tag-description {
+    margin: 10px 0;
+    font-size: .85em;
+}

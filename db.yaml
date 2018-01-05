@@ -1,0 +1,36 @@
+note: 
+  id 
+  title
+  content
+  abstract
+  createAt
+  editAt
+  notebookid
+  tags
+  alive
+  blog
+
+blog: 
+  id 
+  title
+  content
+  html
+  createAt
+  editAt
+  tags
+  noteid
+  alive
+
+notebook:
+  name
+  count
+  
+tag: 
+  name 
+  content # keep it markdown
+  count
+
+config:
+  key
+  value
+
