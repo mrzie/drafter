@@ -158,7 +158,7 @@ func (this *authService) Verify(value AuthValue) (err error) {
 
 func (this *authService) initAuthConfig() {
 	// 若不存在authenticate，初始化密码为1
-	result, err := ConfigService.Get("authenticate")
+	_, err := ConfigService.Get("authenticate")
 	if err == nil {
 		return
 	}
