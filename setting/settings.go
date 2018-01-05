@@ -19,6 +19,7 @@ var Settings struct {
 	Common struct {
 		DefaultPageSize int
 	}
+	Port int
 	// TemplateDir string
 }
 

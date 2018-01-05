@@ -1,9 +1,11 @@
 package main
 
 import (
+	"strconv"
 	// "drafter/app"
 	// "net/http"
 	"drafter/app"
+	. "drafter/setting"
 	"fmt"
 	"net/http"
 )
@@ -11,5 +13,5 @@ import (
 func main() {
 	fmt.Println("hello")
 
-	http.ListenAndServe(":2000", app.R)
+	http.ListenAndServe(":"+strconv.Itoa(Settings.Port), app.R)
 }

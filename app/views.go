@@ -2,7 +2,7 @@ package app
 
 import (
 	"drafter/service"
-	. "drafter/setting"
+	// . "drafter/setting"
 	"html/template"
 	"net/http"
 
