@@ -2,6 +2,7 @@ package app
 
 import (
 	. "drafter/setting"
+	"net/http"
 	"time"
 
 	"drafter/service"
@@ -25,6 +26,7 @@ var (
 )
 
 func init() {
+	R.PathPrefix("/static/").Handler(http.StripPrefix("/static/", http.FileServer(http.Dir("./static"))))
 	API_v1(R.PathPrefix("/v1").Subrouter())
 	R.PathPrefix("/admin").HandlerFunc(adminViews)
 	R.HandleFunc("/blog/{id}", blogView)

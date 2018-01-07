@@ -33,7 +33,7 @@ func adminViews(w http.ResponseWriter, req *http.Request) {
 		model.Config.Authenticated = true
 	}
 
-	t, err := template.ParseFiles("./admin.html")
+	t, err := template.ParseFiles("./templates/admin.html")
 	if err == nil {
 		err = t.Execute(w, model)
 	}
@@ -138,7 +138,7 @@ func mainView(w http.ResponseWriter, req *http.Request) {
 		Count: count,
 	})
 
-	t, err := template.ParseFiles("./index.html")
+	t, err := template.ParseFiles("./templates/index.html")
 
 	if err == nil {
 		err = t.Execute(w, model)
@@ -167,7 +167,7 @@ func blogView(w http.ResponseWriter, req *http.Request) {
 	model := initMainViewModel()
 	model.Config.Blogs = append([]service.BlogPresent{}, b)
 
-	t, err := template.ParseFiles("./index.html")
+	t, err := template.ParseFiles("./templates/index.html")
 
 	if err == nil {
 		err = t.Execute(w, model)
@@ -182,7 +182,7 @@ func errorView(w http.ResponseWriter, req *http.Request) {
 	var (
 		ctx = GetContext(w, req)
 
-		t, err = template.ParseFiles("./index.html")
+		t, err = template.ParseFiles("./templates/index.html")
 	)
 
 	if err == nil {

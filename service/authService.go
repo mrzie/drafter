@@ -91,8 +91,8 @@ func (this *authService) EditPassword(newPassword string, oldPassword string) (r
 	if err != nil {
 		return
 	}
-	var stored *authInfo
-	err = json.Unmarshal(raw, stored)
+	var stored authInfo
+	err = json.Unmarshal(raw, &stored)
 	if err != nil {
 		return
 	}

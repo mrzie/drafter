@@ -12,6 +12,5 @@ import (
 
 func main() {
 	fmt.Println("hello")
-
 	http.ListenAndServe(":"+strconv.Itoa(Settings.Port), app.R)
 }
