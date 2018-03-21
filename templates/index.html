@@ -10,18 +10,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <title>{{.Basic.SiteName}}</title>
-    <link href="/static/index.css" rel="stylesheet" type="text/css">
+    <link href="{{.StaticDir}}/css/index.css" rel="stylesheet" type="text/css">
     <script type="text/javascript">
         var __conf = {{.Config }}
         var __basic = {{.Basic }}
     </script>
-    <!-- <style>
-    </style> -->
 </head>
 
 <body>
     <div id="app"></div>
-    <script src="/static/index.js"></script>
+    <script src="{{.StaticDir}}/js/index.js"></script>
 </body>
 
 </html>

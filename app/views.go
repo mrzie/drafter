@@ -2,7 +2,7 @@ package app
 
 import (
 	"drafter/service"
-	// . "drafter/setting"
+	. "drafter/setting"
 	"html/template"
 	"net/http"
 
@@ -10,7 +10,8 @@ import (
 )
 
 type AdminViewModel struct {
-	Config AdminViewModelConfig
+	Config    AdminViewModelConfig
+	StaticDir string
 }
 
 type AdminViewModelConfig struct {
@@ -32,6 +33,7 @@ func adminViews(w http.ResponseWriter, req *http.Request) {
 		model.Config.Preference = &service.BlogPreference
 		model.Config.Authenticated = true
 	}
+	model.StaticDir = Settings.StaticDir
 
 	t, err := template.ParseFiles("./templates/admin.html")
 	if err == nil {
@@ -44,8 +46,9 @@ func adminViews(w http.ResponseWriter, req *http.Request) {
 }
 
 type MainViewModel struct {
-	Config MainViewModelConfig
-	Basic  MainViewModelBasic
+	Config    MainViewModelConfig
+	Basic     MainViewModelBasic
+	StaticDir string
 }
 
 type MainViewModelBasic struct {
@@ -84,6 +87,7 @@ func initMainViewModel() *MainViewModel {
 			Intro:    p.Intro,
 			Author:   p.Author,
 		},
+		StaticDir: Settings.StaticDir,
 	}
 }
 

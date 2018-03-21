@@ -10,6 +10,7 @@ import "gopkg.in/mgo.v2/bson"
 	3xx - 代码异常
 	4xx - 核验异常
 	5xx - 未找到
+	6xx - 上传图片错误
 	9xx - 无法识别的错误
 */
 
@@ -117,4 +118,10 @@ func TokenExpired() error {
 }
 func NotFound() error {
 	return Exception{Code: 501, Msg: "Not Found"}
+}
+
+// 6xx
+// 上传图片错误
+func UploadImageFail() error {
+	return Exception{Code: 601, Msg: "Upload image fail."}
 }

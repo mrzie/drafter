@@ -19,7 +19,14 @@ var Settings struct {
 	Common struct {
 		DefaultPageSize int
 	}
-	Port int
+	Port  int
+	Qiniu struct {
+		// 图片上传使用七牛的服务
+		AK     string
+		SK     string
+		Domain string
+	}
+	StaticDir string // 静态文件目录
 	// TemplateDir string
 }
 

@@ -87,5 +87,7 @@ func API_v1(router *mux.Router) {
 	admin.Handle("/describe-tag", "PUT", DescribeTagController)
 	admin.Handle("/tags", "GET", ListTagsController)
 	admin.Handle("/tag/{name}", "DELETE", DeleteTagController)
+
+	admin.Handle("/uploadImage", "POST", UploadImageHandler)
 	// r.HandlePrefix("/admin", "GET,POST,PUT,PATCH,OPTIONS,HEAD", VerifyController)
 }
