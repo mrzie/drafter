@@ -49,6 +49,7 @@ type MainViewModel struct {
 	Config    MainViewModelConfig
 	Basic     MainViewModelBasic
 	StaticDir string
+	Title     string
 }
 
 type MainViewModelBasic struct {
@@ -73,7 +74,7 @@ type MainViewListModel struct {
 	Count int               `json:"count"`
 }
 
-func initMainViewModel() *MainViewModel {
+func initMainViewModel(titlePrefix string) *MainViewModel {
 	p := service.BlogPreference
 	return &MainViewModel{
 		Config: MainViewModelConfig{
@@ -88,6 +89,7 @@ func initMainViewModel() *MainViewModel {
 			Author:   p.Author,
 		},
 		StaticDir: Settings.StaticDir,
+		Title:     titlePrefix + p.SiteName,
 	}
 }
 
@@ -96,6 +98,7 @@ func mainView(w http.ResponseWriter, req *http.Request) {
 		ctx         = GetContext(w, req)
 		tag, hasTag = ctx.GetVar()["tag"]
 		count       int
+		titlePrefix = ""
 	)
 
 	// var p int
@@ -120,8 +123,10 @@ func mainView(w http.ResponseWriter, req *http.Request) {
 		ctx.Redirect("/error")
 		return
 	}
-
-	model := initMainViewModel()
+	if hasTag {
+		titlePrefix = "『" + tag + "』 - "
+	}
+	model := initMainViewModel(titlePrefix)
 	model.Config.Blogs = result["blogs"].([]service.BlogPresent)
 	if hasTag {
 		t := result["tag"].(service.Tag)
@@ -161,14 +166,16 @@ func blogView(w http.ResponseWriter, req *http.Request) {
 
 	if !bson.IsObjectIdHex(id) {
 		ctx.Redirect("/error")
+		return
 	}
 
 	b, err := readerS.GetBlogPresent(bson.ObjectIdHex(id))
 	if err != nil {
 		ctx.Redirect("/error")
+		return
 	}
 
-	model := initMainViewModel()
+	model := initMainViewModel(b.Title + " | ")
 	model.Config.Blogs = append([]service.BlogPresent{}, b)
 
 	t, err := template.ParseFiles("./templates/index.html")
@@ -190,7 +197,7 @@ func errorView(w http.ResponseWriter, req *http.Request) {
 	)
 
 	if err == nil {
-		err = t.Execute(w, initMainViewModel())
+		err = t.Execute(w, initMainViewModel("出错啦！ - "))
 	}
 	if err != nil {
 		// 编译模板失败了、渲染失败了
