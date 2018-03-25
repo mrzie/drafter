@@ -57,6 +57,7 @@ type MainViewModelBasic struct {
 	Domain   string `json:"domain"`
 	Intro    string `json:"intro"`
 	Author   string `json:"author"`
+	ICP      string `json:"ICP"`
 }
 
 type MainViewModelConfig struct {
@@ -87,6 +88,7 @@ func initMainViewModel(titlePrefix string) *MainViewModel {
 			Domain:   p.Domain,
 			Intro:    p.Intro,
 			Author:   p.Author,
+			ICP:      Settings.ICP,
 		},
 		StaticDir: Settings.StaticDir,
 		Title:     titlePrefix + p.SiteName,

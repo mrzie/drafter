@@ -27,6 +27,7 @@ var Settings struct {
 		Domain string
 	}
 	StaticDir string // 静态文件目录
+	ICP       string
 	// TemplateDir string
 }
 
