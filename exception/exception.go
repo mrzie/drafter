@@ -10,7 +10,7 @@ import "gopkg.in/mgo.v2/bson"
 	3xx - 代码异常
 	4xx - 核验异常
 	5xx - 未找到
-	6xx - 上传图片错误
+	6xx - 网络异常
 	9xx - 无法识别的错误
 */
 
@@ -73,6 +73,18 @@ func TagDoNotExist(name string) Exception {
 	return Exception{Code: 108, Msg: "Tag do not exist: ", Remark: name}
 }
 
+func FrequentRequest() Exception {
+	return Exception{Code: 109, Msg: "Frequent request."}
+}
+
+func UserBlocked() Exception {
+	return Exception{Code: 110, Msg: "User Blocked"}
+}
+
+func CommentTooShort() Exception {
+	return Exception{Code: 111, Msg: "Comment too short"}
+}
+
 //2xx
 func DBTimeout() error {
 	return Exception{Code: 201, Msg: "DB Timeout"}
@@ -89,6 +101,19 @@ func ConfigFormatError(key string) Exception {
 //3xx
 func TypeError(msg string) error {
 	return Exception{Code: 301, Msg: "Type error", Remark: msg}
+}
+
+func SinaIdOccupied(id string) error {
+	return Exception{Code: 302, Msg: "Sina id occupied.", Remark: id}
+}
+
+// 异常数据
+func ValueError() error {
+	return Exception{Code: 303, Msg: "Value error."}
+}
+
+func UserStateError() error {
+	return Exception{Code: 304, Msg: "User state error."}
 }
 
 // func SessionNotExist() error {
@@ -116,12 +141,28 @@ func PasswordIncorrect() error {
 func TokenExpired() error {
 	return Exception{Code: 404, Msg: "Token expired."}
 }
+
+func OAuthFail(remark string) error {
+	return Exception{Code: 405, Msg: "OAuth fail.", Remark: remark}
+}
+
 func NotFound() error {
 	return Exception{Code: 501, Msg: "Not Found"}
 }
 
 // 6xx
-// 上传图片错误
+// 网络异常
+// 601 上传图片错误
 func UploadImageFail() error {
 	return Exception{Code: 601, Msg: "Upload image fail."}
+}
+
+// 返回状态码不为2xx
+func HttpFail() error {
+	return Exception{Code: 602, Msg: "Fail to access api."}
+}
+
+// 解析response body失败
+func DecodeResponseFail() error {
+	return Exception{Code: 603, Msg: "Fail to decode api response."}
 }

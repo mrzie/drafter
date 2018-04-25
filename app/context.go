@@ -14,12 +14,12 @@ import (
 )
 
 type context struct {
-	Req           *http.Request
-	Res           http.ResponseWriter
-	Session       *sessions.Session
-	queries       *queries
-	ReqBody       []byte
-	authenticated bool
+	Req     *http.Request
+	Res     http.ResponseWriter
+	Session *sessions.Session
+	queries *queries
+	ReqBody []byte
+	context map[string]interface{}
 }
 
 type queries struct {
@@ -114,7 +114,7 @@ type simpleMessage struct {
 
 func (ctx *context) SendMessage(msg string) error {
 	//	0xx - 正确
-	return ctx.SendJson(simpleMessage{000, msg})
+	return ctx.SendJson(simpleMessage{0, msg})
 }
 
 func (ctx *context) Redirect(p string) error {

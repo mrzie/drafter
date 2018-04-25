@@ -28,7 +28,10 @@ var Settings struct {
 	}
 	StaticDir string // 静态文件目录
 	ICP       string
-	// TemplateDir string
+	SinaToken struct {
+		ClientId string
+		SecretId string
+	}
 }
 
 var filePath = "./settings.json"

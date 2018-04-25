@@ -23,6 +23,8 @@ var (
 	notebookS = service.NotebookService
 	readerS   = service.ReaderService
 	configS   = service.ConfigService
+	userS     = service.UserService
+	commentS  = service.CommentService
 )
 
 func init() {

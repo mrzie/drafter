@@ -15,6 +15,7 @@ func init() {
 	ConfigService.GetBlogPreferences()
 	TagService.UpdateCounterCache()
 	BlogService.ResetCount()
+	FrequencyLimiter.init()
 
 	gob.Register(AuthValue{})
 
