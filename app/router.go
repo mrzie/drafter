@@ -61,20 +61,8 @@ func (r *Router) HandleMidware(prefix string, methods string, f controller) *Rou
 	return sub
 }
 
-// 这里存疑
-// 我自己都忘了自己当时是怎么处理这个router的了
-// 果然自己现在写不出更好的了，哎
-func (r *Router) WithMiddleware(f controller) *Router {
-	sub := NewRouter(mux.NewRouter())
-	r.r.NewRoute().Handler(controller(func(ctx *context) (err error) {
-		err = f(ctx)
-		if err != nil {
-			return
-		}
-		sub.r.ServeHTTP(ctx.Res, ctx.Req)
-		return
-	}))
-	return sub
+func (r *Router) WithMiddleware(f controller) *RouterWithMiddleware {
+	return GetRouterWithMiddleWare(r, f)
 }
 
 // func (r *Router) HandlePrefix(prefix string, methods string, f controller) {
@@ -85,6 +73,30 @@ func (r *Router) WithMiddleware(f controller) *Router {
 // 		R = R.Methods(mtds...)
 // 	}
 // }
+
+type RouterWithMiddleware struct {
+	r         *Router
+	decorator func(controller) controller
+}
+
+func (this *RouterWithMiddleware) Handle(route string, methods string, f controller) {
+	this.r.Handle(route, methods, this.decorator(f))
+}
+
+func GetRouterWithMiddleWare(r *Router, middleware controller) *RouterWithMiddleware {
+	return &RouterWithMiddleware{
+		r: r,
+		decorator: func(f controller) controller {
+			return func(ctx *context) (err error) {
+				err = middleware(ctx)
+				if err != nil {
+					return
+				}
+				return f(ctx)
+			}
+		},
+	}
+}
 
 func GetContext(w http.ResponseWriter, req *http.Request) *context {
 	ctx, ok := contexts[req]
