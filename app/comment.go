@@ -3,7 +3,6 @@ package app
 import (
 	e "drafter/exception"
 	"drafter/service"
-	"net/http"
 
 	"gopkg.in/mgo.v2/bson"
 )
@@ -15,15 +14,15 @@ type GetCommentBrefResponse struct {
 	User     service.UserInfo      `json:"user"`
 }
 
-func GetCommentBrefController(w http.ResponseWriter, req *http.Request) {
-	ctx := GetContext(w, req)
-	err := getCommentBrefHandler(ctx)
+func GetCommentBrefController(ctx *context) (err error) {
+	err = getCommentBrefHandler(ctx)
 	if err != nil {
-		ctx.SendJson(GetCommentBrefResponse{})
-		return
+		return ctx.SendJson(GetCommentBrefResponse{})
 	}
+	return
 }
 
+// /comments?blog=123 GET
 func getCommentBrefHandler(ctx *context) (err error) {
 	topicId := ctx.GetQuery().GetString("blog")
 
@@ -104,7 +103,7 @@ type ListCommentResponse struct {
 }
 
 // 接下来是管理员接口
-// /listComment?type=blocked&user=123&blog=456
+// /comments?type=blocked&user=123&blog=456
 func ListCommentController(ctx *context) (err error) {
 	query := ctx.GetQuery()
 	// var req =  ListCommentResponse{}

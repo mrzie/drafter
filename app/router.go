@@ -61,14 +61,30 @@ func (r *Router) HandleMidware(prefix string, methods string, f controller) *Rou
 	return sub
 }
 
-func (r *Router) HandlePrefix(prefix string, methods string, f controller) {
-	mtds := strings.Split(methods, ",")
-
-	R := r.r.PathPrefix(prefix).HandlerFunc(f.ServeHTTP)
-	if methods != "" {
-		R = R.Methods(mtds...)
-	}
+// 这里存疑
+// 我自己都忘了自己当时是怎么处理这个router的了
+// 果然自己现在写不出更好的了，哎
+func (r *Router) WithMiddleware(f controller) *Router {
+	sub := NewRouter(mux.NewRouter())
+	r.r.NewRoute().Handler(controller(func(ctx *context) (err error) {
+		err = f(ctx)
+		if err != nil {
+			return
+		}
+		sub.r.ServeHTTP(ctx.Res, ctx.Req)
+		return
+	}))
+	return sub
 }
+
+// func (r *Router) HandlePrefix(prefix string, methods string, f controller) {
+// 	mtds := strings.Split(methods, ",")
+
+// 	R := r.r.PathPrefix(prefix).HandlerFunc(f.ServeHTTP)
+// 	if methods != "" {
+// 		R = R.Methods(mtds...)
+// 	}
+// }
 
 func GetContext(w http.ResponseWriter, req *http.Request) *context {
 	ctx, ok := contexts[req]

@@ -61,7 +61,8 @@ func API_v1(router *mux.Router) {
 	r.Handle("/blog/{id}", "GET", GetBlogHandler)
 	r.Handle("/tags", "GET", GetTagsHandler)
 	r.Handle("/login", "POST", LoginHandler)
-
+	r.Handle("/comments", "GET", GetCommentBrefController)
+	r.WithMiddleware(UserVerifyController).Handle("/compose", "POST", ComposeCommentController)
 	admin := r.HandleMidware("/admin", "", VerifyController)
 	admin.Handle("/editPassword", "POST", EditPasswordController)
 
@@ -91,5 +92,11 @@ func API_v1(router *mux.Router) {
 	admin.Handle("/tag/{name}", "DELETE", DeleteTagController)
 
 	admin.Handle("/uploadImage", "POST", UploadImageHandler)
+	admin.Handle("/comments", "GET", ListCommentController)
+	admin.Handle("/comment", "DELETE", DeleteCommentController)
+	admin.Handle("/revertComment", "PUT", RevertCommentController)
+	admin.Handle("/passComment", "PUT", PassCommentController)
+	admin.Handle("/censorUser", "PUT", CensorUserController)
+	admin.Handle("/blockComment", "PUT", BlockCommentController)
 	// r.HandlePrefix("/admin", "GET,POST,PUT,PATCH,OPTIONS,HEAD", VerifyController)
 }
