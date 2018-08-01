@@ -17,7 +17,7 @@ type commentService struct {
 
 type Comment struct {
 	Id      bson.ObjectId `json:"id" bson:"_id",omitempty`
-	Ref     bson.ObjectId `json:"ref"`
+	Ref     string        `json:"ref"`
 	Blog    bson.ObjectId `json:"blog"` // blog id
 	User    bson.ObjectId `json:"user"`
 	State   CommentState  `json:"state"` // 0 - reviewing 1 - pass 2 - implicated 3 - block
@@ -37,23 +37,26 @@ const (
 
 type CommentBref struct {
 	Id      bson.ObjectId `json:"id" bson:"_id",omitempty`
-	Ref     bson.ObjectId `json:"ref"`
+	Ref     string        `json:"ref"`
 	User    bson.ObjectId `json:"user"`
 	Time    int64         `json:"time"`
 	Content string        `json:"content"`
+	State   CommentState  `json:"state"`
 }
 
 var CommentService = new(commentService)
 
-func (this *commentService) Compose(user User, comment Comment) (err error) {
+func (this *commentService) Compose(user User, comment Comment) (commentResult CommentBref, err error) {
 	now := time.Now().Unix()
 
 	if FrequencyLimiter.Check(user.Id, now) {
-		return e.FrequentRequest()
+		err = e.FrequentRequest()
+		return
 	}
 
 	if user.Level == USER_BLOCKED {
-		return e.UserBlocked()
+		err = e.UserBlocked()
+		return
 	}
 
 	ac, err := db.Access()
@@ -63,8 +66,8 @@ func (this *commentService) Compose(user User, comment Comment) (err error) {
 	defer ac.Close()
 
 	var isSensitive bool
-	if user.Level == USER_UNKNOWN || user.Level == USER_DOUBTED {
-		// new user or doubted
+	if user.Level == USER_DOUBTED || user.Level == USER_REVIEWING {
+		// doubted user or reviewing
 		comment.State = COMMENT_IMPLICATED // implicated
 	} else if user.Level == USER_TRUSTED {
 		// trust user (actually normal user)
@@ -74,7 +77,8 @@ func (this *commentService) Compose(user User, comment Comment) (err error) {
 			comment.State = COMMENT_PASS // pass
 		}
 	} else {
-		return e.ValueError()
+		err = e.ValueError()
+		return
 	}
 	comment.Time = now
 	comment.User = user.Id
@@ -83,11 +87,21 @@ func (this *commentService) Compose(user User, comment Comment) (err error) {
 
 	FrequencyLimiter.Mark(user.Id, now)
 	err = ac.C("comments").Insert(comment)
+
 	if err != nil {
-		return err
+		return
+	}
+
+	commentResult = CommentBref{
+		Id:      comment.Id,
+		Time:    comment.Time,
+		Content: comment.Content,
+		State:   comment.State,
+		Ref:     comment.Ref,
+		User:    comment.User,
 	}
 	if isSensitive {
-		err = UserService.doubtUser(user.Id)
+		err = UserService.reviewUser(user.Id)
 	}
 	return
 }
@@ -98,7 +112,6 @@ func (this *commentService) ListCommentBref(blog bson.ObjectId, user *User) (com
 		return
 	}
 	defer ac.Close()
-
 	comments = []CommentBref{}
 	var condition m
 	if user == nil {
@@ -107,9 +120,15 @@ func (this *commentService) ListCommentBref(blog bson.ObjectId, user *User) (com
 		condition = m{
 			"$or": []m{
 				m{"blog": blog, "state": COMMENT_PASS, "alive": true},
-				m{"blog": blog, "alive": true, "user": user.Id, "state": m{
-					"$in": []CommentState{COMMENT_REVIEWING, COMMENT_IMPLICATED},
-				}},
+				m{
+					"blog":  blog,
+					"alive": true,
+					"user":  user.Id,
+					"$or": []m{
+						m{"state": COMMENT_REVIEWING},
+						m{"state": COMMENT_IMPLICATED},
+					},
+				},
 			},
 		}
 	}
@@ -127,7 +146,7 @@ func (this *commentService) ListCommentByUser(user bson.ObjectId) (comments []Co
 	return this.listComment(m{"user": user})
 }
 
-func (this *commentService) listCommentByUsers(users []bson.ObjectId) (comments []Comment, err error) {
+func (this *commentService) ListCommentByUsers(users []bson.ObjectId) (comments []Comment, err error) {
 	return this.listComment(m{"user": m{"$in": users}})
 }
 
@@ -135,9 +154,22 @@ func (this *commentService) ListReviewingComments() (comments []Comment, err err
 	return this.listComment(m{"state": COMMENT_REVIEWING})
 }
 
-// func (this *commentService) ListImplicatedComments() (comments []Comment, err error) {
-// 	return this.listComment(m{"state": COMMENT_IMPLICATED})
-// }
+func (this *commentService) ListRecentComments() (comments []Comment, err error) {
+	ac, err := db.Access()
+	if err != nil {
+		return
+	}
+	defer ac.Close()
+
+	comments = []Comment{}
+	err = ac.C("comments").Find(m{
+		"alive": true,
+		"state": m{
+			"$ne": COMMENT_BLOCKED,
+		},
+	}).Sort("-time").Limit(50).All(&comments)
+	return
+}
 
 func (this *commentService) ListBlockedComments() (comments []Comment, err error) {
 	return this.listComment(m{"state": COMMENT_BLOCKED})
@@ -184,7 +216,8 @@ func (this *commentService) modify(selector m, modify m) (err error) {
 	}
 	defer ac.Close()
 
-	return ac.C("comments").Update(selector, m{"$set": modify})
+	_, err = ac.C("comments").UpdateAll(selector, m{"$set": modify})
+	return
 }
 
 func (this *commentService) CheckSensitiveWords(content string) (isSensitive bool) {
@@ -239,19 +272,26 @@ func (this *commentService) blockComment(id bson.ObjectId) (matched bool, commen
 func (this *commentService) revertComment(id bson.ObjectId) (matched bool, comment Comment, err error) {
 	return this.findAndModify(m{"_id": id}, m{"state": COMMENT_PASS, "alive": true})
 }
-func (this *commentService) doubtComment(id bson.ObjectId) (comment Comment, err error) {
+func (this *commentService) reviewComment(id bson.ObjectId) (comment Comment, err error) {
 	_, comment, err = this.findAndModify(m{"_id": id}, m{"state": COMMENT_REVIEWING})
 	return
 }
 
-func (this *commentService) CheckUserComments(id bson.ObjectId, since int64) (sensitiveOne *Comment, err error) {
-	comments, err := this.listComment(m{"user": id, "time": m{"$gt": since}})
+func (this *commentService) CheckUserComments(id bson.ObjectId) (sensitiveOne *Comment, err error) {
+	comments, err := this.listComment(m{"user": id, "alive": true, "state": m{"$ne": COMMENT_PASS}})
 	if err != nil {
 		return
 	}
-
-	if len(comments) == 0 {
+	commentsLength := len(comments)
+	if commentsLength == 0 {
 		return
+	}
+
+	// 这里这个comments顺序是从新到老，检测应该从老到新
+	i := 0
+	li := commentsLength - i - 1
+	for ; i < li; i, li = i+1, li-1 {
+		comments[i], comments[li] = comments[li], comments[i]
 	}
 
 	var (
@@ -261,6 +301,12 @@ func (this *commentService) CheckUserComments(id bson.ObjectId, since int64) (se
 
 	sensitiveWords := this.getSensitiveWords()
 	for _, comment := range comments {
+		if comment.State != COMMENT_IMPLICATED {
+			// 触发checkusercomments的用户无非两种，新用户被检测，或敏感评论审核通过之后其余评论被检测。
+			// 不应该出现状态alive=true而state不是pass或implicated的评论
+			err = e.ValueError()
+			return
+		}
 		if this.checkSensitiveWords(comment.Content, sensitiveWords) {
 			// 发现敏感词
 			sensitiveId = comment.Id
@@ -273,11 +319,11 @@ func (this *commentService) CheckUserComments(id bson.ObjectId, since int64) (se
 		}
 	}
 	if sensitiveId != "" {
-		_, err = this.doubtComment(sensitiveId)
+		_, err = this.reviewComment(sensitiveId)
 		if err != nil {
 			return
 		}
-		err = UserService.doubtUser(id)
+		err = UserService.reviewUser(id)
 		if err != nil {
 			return
 		}
@@ -285,27 +331,53 @@ func (this *commentService) CheckUserComments(id bson.ObjectId, since int64) (se
 		err = UserService.trustUser(id)
 	}
 	if len(passList) > 0 {
-		err = this.modify(m{"id": m{"$in": passList}}, m{"state": COMMENT_PASS})
+
+		err = this.modify(m{"_id": m{"$in": passList}}, m{"state": COMMENT_PASS})
 		if err != nil {
+
 			return
 		}
 	}
 	return
 }
 
-func (this *commentService) DeleteComment(id bson.ObjectId) (err error) {
+func (this *commentService) DeleteComment(id bson.ObjectId) (setUserDoubted bool, err error) {
 	matched, comment, err := this.deleteComment(id)
 	if err != nil {
 		return
 	}
 	if !matched {
-		return e.NotFound()
+		err = e.NotFound()
+		return
 	}
 	if comment.State == COMMENT_REVIEWING {
 		// 若删除的是审核中的评论，设置用户为未置信状态。
 		err = UserService.uncertainForUser(comment.User)
 		if err != nil {
 			return
+		}
+		setUserDoubted = true
+	}
+	// 若删除的是已屏蔽的评论，并且用户已经没有其他被屏蔽的言论，设置用户为未置信状态
+	if comment.State == COMMENT_BLOCKED {
+		var comments []Comment
+		comments, err = this.ListCommentByUser(comment.User)
+		if err != nil {
+			return
+		}
+		sensitiveYet := false
+		for _, c := range comments {
+			if c.State == COMMENT_BLOCKED && c.Alive {
+				sensitiveYet = true
+				break
+			}
+		}
+		if !sensitiveYet {
+			err = UserService.uncertainForUser(comment.User)
+			if err != nil {
+				return
+			}
+			setUserDoubted = true
 		}
 	}
 	return
@@ -350,7 +422,7 @@ func (this *commentService) PassComment(id bson.ObjectId) (sensitiveOne *Comment
 		return
 	}
 
-	return this.CheckUserComments(comment.User, comment.Time)
+	return this.CheckUserComments(comment.User)
 }
 
 // 发言频率限制

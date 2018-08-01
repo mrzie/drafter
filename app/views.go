@@ -1,10 +1,12 @@
 package app
 
 import (
+	e "drafter/exception"
 	"drafter/service"
 	. "drafter/setting"
 	"html/template"
 	"net/http"
+	"time"
 
 	"gopkg.in/mgo.v2/bson"
 )
@@ -53,20 +55,19 @@ type MainViewModel struct {
 }
 
 type MainViewModelBasic struct {
-	SiteName string `json:"sitename"`
-	Domain   string `json:"domain"`
-	Intro    string `json:"intro"`
-	Author   string `json:"author"`
-	ICP      string `json:"ICP"`
+	SiteName     string `json:"sitename"`
+	Domain       string `json:"domain"`
+	Intro        string `json:"intro"`
+	Author       string `json:"author"`
+	ICP          string `json:"ICP"`
+	SinaClientId string `json:"sinaClientId"`
 }
 
 type MainViewModelConfig struct {
 	Lists []MainViewListModel   `json:"lists",omitempty`
 	Blogs []service.BlogPresent `json:"blogs",omitempty`
-	// Loadings
-	Tags []service.Tag `json:"tags",omitempty`
-	// 第一个版本我们先不搞tagCloud吧
-	// TagsSyncAt uint
+	Tags  []service.Tag         `json:"tags",omitempty`
+	User  *service.UserInfo     `json:"user",omitempty`
 }
 
 type MainViewListModel struct {
@@ -84,11 +85,12 @@ func initMainViewModel(titlePrefix string) *MainViewModel {
 			Tags:  []service.Tag{},
 		},
 		Basic: MainViewModelBasic{
-			SiteName: p.SiteName,
-			Domain:   p.Domain,
-			Intro:    p.Intro,
-			Author:   p.Author,
-			ICP:      Settings.ICP,
+			SiteName:     p.SiteName,
+			Domain:       p.Domain,
+			Intro:        p.Intro,
+			Author:       p.Author,
+			ICP:          Settings.ICP,
+			SinaClientId: Settings.SinaToken.ClientId,
 		},
 		StaticDir: Settings.StaticDir,
 		Title:     titlePrefix + p.SiteName,
@@ -97,12 +99,28 @@ func initMainViewModel(titlePrefix string) *MainViewModel {
 
 func mainView(w http.ResponseWriter, req *http.Request) {
 	var (
-		ctx         = GetContext(w, req)
-		tag, hasTag = ctx.GetVar()["tag"]
-		count       int
-		titlePrefix = ""
+		ctx           = GetContext(w, req)
+		tag, hasTag   = ctx.GetVar()["tag"]
+		count         int
+		titlePrefix   = ""
+		chanUserError = make(chan error)
 	)
 
+	defer close(chanUserError)
+
+	go func() {
+		defer func() {
+			recover()
+		}()
+		chanUserError <- UserVerifyController(ctx)
+	}()
+	go func() {
+		defer func() {
+			recover()
+		}()
+		time.Sleep(time.Duration(10 * time.Second)) // 10 senconds to timeout
+		chanUserError <- e.DBTimeout()
+	}()
 	// var p int
 	// if len(query.GetString("p")) > 0 {
 	// 	p = query.GetInt("p")
@@ -152,6 +170,21 @@ func mainView(w http.ResponseWriter, req *http.Request) {
 	t, err := template.ParseFiles("./templates/index.html")
 
 	if err == nil {
+		userErr := <-chanUserError
+		if userErr == nil {
+			user, userEr := getUser(ctx)
+			if userEr == nil {
+				model.Config.User = &service.UserInfo{
+					Id:      user.Id,
+					Name:    user.Name,
+					Avatar:  user.Avatar,
+					Profile: user.SinaProfile,
+				}
+			}
+		}
+	}
+
+	if err == nil {
 		err = t.Execute(w, model)
 	}
 	if err != nil {
@@ -171,6 +204,26 @@ func blogView(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	var chanUserError = make(chan error)
+
+	defer close(chanUserError)
+
+	go func() {
+		defer func() {
+			recover()
+		}()
+		chanUserError <- UserVerifyController(ctx)
+
+	}()
+	go func() {
+		defer func() {
+			recover()
+		}()
+
+		time.Sleep(time.Duration(10 * time.Second)) // 10 senconds to timeout
+		chanUserError <- e.DBTimeout()
+	}()
+
 	b, err := readerS.GetBlogPresent(bson.ObjectIdHex(id))
 	if err != nil {
 		ctx.Redirect("/error")
@@ -181,6 +234,20 @@ func blogView(w http.ResponseWriter, req *http.Request) {
 	model.Config.Blogs = append([]service.BlogPresent{}, b)
 
 	t, err := template.ParseFiles("./templates/index.html")
+	if err == nil {
+		userErr := <-chanUserError
+		if userErr == nil {
+			user, userEr := getUser(ctx)
+			if userEr == nil {
+				model.Config.User = &service.UserInfo{
+					Id:      user.Id,
+					Name:    user.Name,
+					Avatar:  user.Avatar,
+					Profile: user.SinaProfile,
+				}
+			}
+		}
+	}
 
 	if err == nil {
 		err = t.Execute(w, model)

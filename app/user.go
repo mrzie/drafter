@@ -4,7 +4,7 @@ import (
 	e "drafter/exception"
 	"drafter/service"
 	"html/template"
-	"net/http"
+	"net/url"
 
 	"gopkg.in/mgo.v2/bson"
 )
@@ -17,11 +17,11 @@ type OAuthLoginModel struct {
 var UserAuthCache = make(map[bson.ObjectId]int64)
 
 func UserVerifyController(ctx *context) (err error) {
-	var u *UserAuthInfo
+	var u UserAuthInfo
 	session := ctx.GetSession()
 	v, ok := session.Values["user"]
 	if ok {
-		u, ok = v.(*UserAuthInfo)
+		u, ok = v.(UserAuthInfo)
 	}
 	if !ok {
 		return e.SessionNotFound()
@@ -58,10 +58,18 @@ type UserAuthInfo struct {
 func OAuthLogin(ctx *context, exclusive bool) {
 	var m = OAuthLoginModel{}
 	code := ctx.GetQuery().GetString("code")
-	uinfo, since, err := userS.UserAuthorize(code, ctx.Req.RequestURI, exclusive)
+	scheme := "http"
+	if ctx.Req.TLS != nil {
+		scheme = "https"
+	}
+	uinfo, since, err := userS.UserAuthorize(code, (&url.URL{
+		Scheme: scheme,
+		Path:   ctx.Req.URL.Path,
+		Host:   ctx.Req.Host,
+	}).String(), exclusive)
 	if err == nil {
 		UserAuthCache[uinfo.Id] = since
-		ctx.GetSession().Values["user"] = &UserAuthInfo{Id: uinfo.Id, Since: since}
+		ctx.GetSession().Values["user"] = UserAuthInfo{Id: uinfo.Id, Since: since}
 		err = ctx.SaveSession()
 	}
 	if err == nil {
@@ -71,7 +79,7 @@ func OAuthLogin(ctx *context, exclusive bool) {
 		m.Success = false
 	}
 
-	t, err := template.New("OAuthTpl").Parse("<script>window.opener.OAuthCallback({{.}})</script>")
+	t, err := template.New("OAuthTpl").Parse("<script>window.opener.OAuthCallback({{.}});window.close()</script>")
 	if err == nil {
 		err = t.Execute(ctx.Res, m)
 	}
@@ -81,12 +89,32 @@ func OAuthLogin(ctx *context, exclusive bool) {
 	return
 }
 
-func OAuthLoginController(w http.ResponseWriter, req *http.Request) {
-	ctx := GetContext(w, req)
+func OAuthLoginController(ctx *context) error {
 	OAuthLogin(ctx, false)
+	return nil
 }
 
-func OAuthExclusiveLoginController(w http.ResponseWriter, req *http.Request) {
-	ctx := GetContext(w, req)
+func OAuthExclusiveLoginController(ctx *context) error {
 	OAuthLogin(ctx, true)
+	return nil
+}
+
+func GetDoubtedUsersController(ctx *context) (err error) {
+	users, err := userS.GetDoubtedUsers()
+	if err != nil {
+		return
+	}
+
+	uids := []bson.ObjectId{}
+	for _, v := range users {
+		uids = append(uids, v.Id)
+	}
+	comments, err := commentS.ListCommentByUsers(uids)
+	if err != nil {
+		return
+	}
+	return ctx.SendJson(ListCommentResponse{
+		Users:    users,
+		Comments: comments,
+	})
 }

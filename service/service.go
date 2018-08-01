@@ -1,7 +1,6 @@
 package service
 
 import (
-	"encoding/gob"
 	"encoding/json"
 	"reflect"
 )
@@ -16,8 +15,6 @@ func init() {
 	TagService.UpdateCounterCache()
 	BlogService.ResetCount()
 	FrequencyLimiter.init()
-
-	gob.Register(AuthValue{})
 
 }
 

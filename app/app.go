@@ -2,6 +2,7 @@ package app
 
 import (
 	. "drafter/setting"
+	"encoding/gob"
 	"net/http"
 	"time"
 
@@ -28,6 +29,10 @@ var (
 )
 
 func init() {
+
+	gob.Register(UserAuthInfo{})
+	gob.Register(service.AuthValue{})
+
 	R.PathPrefix("/static/").Handler(http.StripPrefix("/static/", http.FileServer(http.Dir("./static"))))
 	API_v1(R.PathPrefix("/v1").Subrouter())
 	R.PathPrefix("/admin").HandlerFunc(adminViews)
@@ -61,8 +66,11 @@ func API_v1(router *mux.Router) {
 	r.Handle("/blog/{id}", "GET", GetBlogHandler)
 	r.Handle("/tags", "GET", GetTagsHandler)
 	r.Handle("/login", "POST", LoginHandler)
+	r.Handle("/OAuthLogin", "GET", OAuthLoginController)
+	r.Handle("/OAuthExclusiveLogin", "GET", OAuthExclusiveLoginController)
 	r.Handle("/comments", "GET", GetCommentBrefController)
 	r.WithMiddleware(UserVerifyController).Handle("/compose", "POST", ComposeCommentController)
+	r.WithMiddleware(UserVerifyController).Handle("/logout", "GET", UserLogoutController)
 	admin := r.HandleMidware("/admin", "", VerifyController)
 	admin.Handle("/editPassword", "POST", EditPasswordController)
 
@@ -92,11 +100,13 @@ func API_v1(router *mux.Router) {
 	admin.Handle("/tag/{name}", "DELETE", DeleteTagController)
 
 	admin.Handle("/uploadImage", "POST", UploadImageHandler)
+
+	admin.Handle("/doubtedUsers", "GET", GetDoubtedUsersController)
 	admin.Handle("/comments", "GET", ListCommentController)
 	admin.Handle("/comment", "DELETE", DeleteCommentController)
-	admin.Handle("/revertComment", "PUT", RevertCommentController)
-	admin.Handle("/passComment", "PUT", PassCommentController)
-	admin.Handle("/censorUser", "PUT", CensorUserController)
-	admin.Handle("/blockComment", "PUT", BlockCommentController)
+	admin.Handle("/revertComment", "PATCH", RevertCommentController)
+	admin.Handle("/passComment", "PATCH", PassCommentController)
+	admin.Handle("/censorUser", "PATCH", CensorUserController)
+	admin.Handle("/blockComment", "PATCH", BlockCommentController)
 	// r.HandlePrefix("/admin", "GET,POST,PUT,PATCH,OPTIONS,HEAD", VerifyController)
 }

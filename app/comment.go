@@ -11,7 +11,6 @@ type GetCommentBrefResponse struct {
 	OK       bool                  `json:"ok"`
 	Comments []service.CommentBref `json:"comments"`
 	Users    []service.UserInfo    `json:"users"`
-	User     service.UserInfo      `json:"user"`
 }
 
 func GetCommentBrefController(ctx *context) (err error) {
@@ -36,7 +35,8 @@ func getCommentBrefHandler(ctx *context) (err error) {
 		// 未登录的用户
 		comments, err = commentS.ListCommentBref(tid, nil)
 	} else {
-		comments, err = commentS.ListCommentBref(tid, nil)
+		user, _ := getUser(ctx)
+		comments, err = commentS.ListCommentBref(tid, user)
 	}
 	if err != nil {
 		return
@@ -44,7 +44,7 @@ func getCommentBrefHandler(ctx *context) (err error) {
 
 	uids := []bson.ObjectId{}
 	for _, c := range comments {
-		uids = append(uids, c.Id)
+		uids = append(uids, c.User)
 	}
 	users, err := userS.GetUserInfos(uids)
 	if err != nil {
@@ -71,7 +71,7 @@ func getUser(ctx *context) (u *service.User, err error) {
 type ComposeCommentRequest struct {
 	Content string        `json:"content"`
 	Blog    bson.ObjectId `json:"blog"`
-	Ref     bson.ObjectId `json"ref"`
+	Ref     string        `json"ref"`
 }
 
 func ComposeCommentController(ctx *context) (err error) {
@@ -93,7 +93,10 @@ func ComposeCommentController(ctx *context) (err error) {
 		return
 	}
 
-	err = commentS.Compose(*user, service.Comment{Content: req.Content, Blog: req.Blog, Ref: req.Ref})
+	comment, err := commentS.Compose(*user, service.Comment{Content: req.Content, Blog: req.Blog, Ref: req.Ref})
+	if err == nil {
+		ctx.SendJson(comment)
+	}
 	return
 }
 
@@ -148,12 +151,16 @@ func ListCommentController(ctx *context) (err error) {
 		})
 	} else if t, ok := query.value["type"]; ok {
 		switch t {
+		case "doubted":
+			return GetDoubtedUsersController(ctx)
 		case "reviewing":
 			return responseCommentList(ctx, commentS.ListReviewingComments)
 		case "removed":
 			return responseCommentList(ctx, commentS.ListRemovedComments)
 		case "blocked":
 			return responseCommentList(ctx, commentS.ListBlockedComments)
+		case "recent":
+			return responseCommentList(ctx, commentS.ListRecentComments)
 		default:
 			return e.NotFound()
 		}
@@ -178,6 +185,11 @@ func responseCommentList(ctx *context, fn func() ([]service.Comment, error)) (er
 	})
 }
 
+type DeleteCommentResponse struct {
+	OK        bool `json:"ok"`
+	IsDoubted bool `json:"isDoubted"`
+}
+
 // comment?id=  DELETE
 func DeleteCommentController(ctx *context) (err error) {
 	id := ctx.GetQuery().GetString("id")
@@ -185,11 +197,12 @@ func DeleteCommentController(ctx *context) (err error) {
 		return e.InvalidId(id)
 	}
 
-	err = commentS.DeleteComment(bson.ObjectIdHex(id))
+	setUserDoubted, err := commentS.DeleteComment(bson.ObjectIdHex(id))
 	if err != nil {
 		return
 	}
-	return // 这里要不要返回审查结果呢？
+
+	return ctx.SendJson(DeleteCommentResponse{OK: true, IsDoubted: setUserDoubted}) // 这里要不要返回审查结果呢？
 }
 
 // revertComment?id=
@@ -202,7 +215,7 @@ func RevertCommentController(ctx *context) (err error) {
 	if err != nil {
 		return
 	}
-	return ctx.SendMessage("revert comment success.")
+	return ctx.SendMessage("revert commentcomment")
 }
 
 type CensorUserResponse struct {

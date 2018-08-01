@@ -36,7 +36,7 @@ func RunesIndexOf(s string, substring string) (index int) {
 	lengthSub := len(sub)
 	index = -1
 	for i := 0; i < lengthSrc; i++ {
-		for j := 0; j < lengthSub; j++ {
+		for j := 0; j < lengthSub && i+j < lengthSrc; j++ {
 			if src[i+j] != sub[j] {
 				break
 			}

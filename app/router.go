@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"strings"
+	"sync"
 
 	"github.com/gorilla/mux"
 )
@@ -15,6 +16,7 @@ type Router struct {
 }
 
 var contexts = make(map[*http.Request]*context)
+var contextsMux sync.Mutex
 
 type controller func(*context) error
 
@@ -26,7 +28,9 @@ func (f controller) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	} else if ctx.Session != nil {
 		ctx.Session.Save(req, w)
 	}
+	contextsMux.Lock()
 	delete(contexts, req)
+	contextsMux.Unlock()
 }
 
 func (r *Router) Handle(route string, methods string, f controller) {
@@ -102,7 +106,9 @@ func GetContext(w http.ResponseWriter, req *http.Request) *context {
 	ctx, ok := contexts[req]
 	if !ok {
 		ctx = &context{Req: req, Res: w}
+		contextsMux.Lock()
 		contexts[req] = ctx
+		contextsMux.Unlock()
 	}
 	return ctx
 }

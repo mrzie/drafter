@@ -53,7 +53,7 @@ func UploadImageHandler(ctx *context) (err error) {
 	if err != nil {
 		return
 	}
-	// fmt.Println(res)
+
 	if res.StatusCode >= 300 || res.StatusCode < 200 {
 		return e.UploadImageFail()
 	}
