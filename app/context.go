@@ -125,3 +125,9 @@ func (ctx *context) Redirect(p string) error {
 	ctx.Res.WriteHeader(http.StatusMovedPermanently)
 	return nil
 }
+
+func (ctx *context) RedirectURL(str string) error {
+	ctx.Res.Header().Set("Location", str)
+	ctx.Res.WriteHeader(http.StatusMovedPermanently)
+	return nil
+}

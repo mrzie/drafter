@@ -58,6 +58,7 @@ type UserAuthInfo struct {
 func OAuthLogin(ctx *context, exclusive bool) {
 	var m = OAuthLoginModel{}
 	code := ctx.GetQuery().GetString("code")
+	redirect_uri := ctx.GetQuery().GetString("redirect_uri")
 	scheme := "http"
 	if ctx.Req.TLS != nil {
 		scheme = "https"
@@ -79,12 +80,18 @@ func OAuthLogin(ctx *context, exclusive bool) {
 		m.Success = false
 	}
 
-	t, err := template.New("OAuthTpl").Parse("<script>window.opener.OAuthCallback({{.}});window.close()</script>")
-	if err == nil {
-		err = t.Execute(ctx.Res, m)
-	}
-	if err != nil {
-		ctx.SendMessage("fail")
+	if redirect_uri == "" {
+		var t *template.Template
+		t, err = template.New("OAuthTpl").Parse("<script>window.opener.OAuthCallback({{.}});window.close()</script>")
+		if err == nil {
+			err = t.Execute(ctx.Res, m)
+		}
+
+		if err != nil {
+			ctx.SendMessage("fail")
+		}
+	} else {
+		ctx.RedirectURL(redirect_uri)
 	}
 	return
 }
