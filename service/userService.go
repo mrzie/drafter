@@ -189,6 +189,10 @@ type SinaUserInfo struct {
 func (this *userService) fetchUserInfo(token string, uid string) (userInfo SinaUserInfo, err error) {
 	// var userInfo SinaUserInfo
 	err = getFromApi("https://api.weibo.com/2/users/show.json?"+url.Values{"access_token": []string{token}, "uid": []string{uid}}.Encode(), &userInfo)
+	// transfer http:// to //
+	if userInfo.Avatar[:7] == "http://" {
+		userInfo.Avatar = userInfo.Avatar[5:]
+	}
 	return
 }
 

@@ -67,7 +67,7 @@ func UploadImageHandler(ctx *context) (err error) {
 	if err != nil {
 		return
 	}
-	return ctx.SendJson(uploadImageResponse{Url: "http://" + Settings.Qiniu.Domain + "/" + qiniuRes.Key})
+	return ctx.SendJson(uploadImageResponse{Url: "//" + Settings.Qiniu.Domain + "/" + qiniuRes.Key})
 	// io.Copy(os.Stderr, res.Body) // Replace this with Status.Code check
 	// return
 }
